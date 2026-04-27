@@ -63,10 +63,10 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').toUpperCase()
 }
 
-const PODIUM_CONFIG: Record<number, { baseH: string; baseColor: string; badgeBg: string }> = {
-  1: { baseH: '120px', baseColor: '#F59E0B', badgeBg: '#F59E0B' },
-  2: { baseH: '80px',  baseColor: '#CBD5E1', badgeBg: '#64748B' },
-  3: { baseH: '60px',  baseColor: '#CBD5E1', badgeBg: '#92400E' },
+const PODIUM_CONFIG: Record<number, { baseH: string; baseColor: string; badgeBg: string; ringColor: string }> = {
+  1: { baseH: '140px', baseColor: '#F6D860', badgeBg: '#F59E0B', ringColor: '#F59E0B' },
+  2: { baseH: '90px',  baseColor: '#D1D9E6', badgeBg: '#64748B', ringColor: '#94A3B8' },
+  3: { baseH: '70px',  baseColor: '#D1D9E6', badgeBg: '#92400E', ringColor: '#94A3B8' },
 }
 
 const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
@@ -125,47 +125,56 @@ const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
       </div>
 
       <!-- ── Podium ──────────────────────────────────────────────────────── -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-6 pt-8 pb-0 mb-4 overflow-hidden">
-        <div v-if="podiumSlots.length" class="flex items-end justify-center gap-4">
+      <div class="bg-slate-100 rounded-xl shadow-sm border border-gray-200 px-6 pt-10 pb-0 mb-4 overflow-hidden">
+        <div v-if="podiumSlots.length" class="flex items-end justify-center gap-6">
           <div
             v-for="slot in podiumSlots"
             :key="slot!.rank"
             class="flex flex-col items-center"
-            :class="slot!.rank === 1 ? 'w-52' : 'w-40'"
+            :class="slot!.rank === 1 ? 'w-56' : 'w-44'"
           >
             <div class="flex flex-col items-center mb-3">
               <!-- Avatar -->
-              <div class="relative mb-2" :class="slot!.rank === 1 ? 'w-20 h-20' : 'w-14 h-14'">
+              <div
+                class="relative mb-3 rounded-full p-1"
+                :class="slot!.rank === 1 ? 'w-28 h-28' : 'w-22 h-22'"
+                :style="{ boxShadow: `0 0 0 4px ${PODIUM_CONFIG[slot!.rank].ringColor}` }"
+              >
                 <img
                   :src="slot!.user.avatar"
                   :alt="slot!.user.name"
-                  class="w-full h-full rounded-full object-cover ring-4 ring-white shadow-md"
+                  class="w-full h-full rounded-full object-cover"
                   :onerror="`this.style.display='none';this.nextElementSibling.style.display='flex'`"
                 />
                 <div
-                  class="w-full h-full rounded-full items-center justify-center text-white font-bold ring-4 ring-white shadow-md hidden"
+                  class="w-full h-full rounded-full items-center justify-center text-white font-bold hidden"
                   :class="slot!.rank === 1 ? 'text-2xl' : 'text-base'"
                   :style="{ backgroundColor: slot!.user.color }"
                 >{{ initials(slot!.user.name) }}</div>
                 <span
-                  class="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ring-2 ring-white"
+                  class="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white ring-2 ring-white"
                   :style="{ backgroundColor: PODIUM_CONFIG[slot!.rank].badgeBg }"
                 >{{ slot!.rank }}</span>
               </div>
 
-              <p class="font-semibold text-gray-900 text-center" :class="slot!.rank === 1 ? 'text-base' : 'text-sm'">
+              <p class="font-bold text-gray-900 text-center" :class="slot!.rank === 1 ? 'text-lg' : 'text-base'">
                 {{ slot!.user.name }}
               </p>
-              <p class="text-xs text-gray-500 text-center leading-tight">
-                {{ slot!.user.title }}<br/>
-                <span class="text-gray-400">({{ slot!.user.codes }})</span>
+              <p class="text-xs text-gray-500 text-center leading-snug mt-0.5">
+                {{ slot!.user.title }} ({{ slot!.user.codes }})
               </p>
 
               <div
-                class="flex items-center gap-1 mt-2 px-3 py-1 rounded-full text-sm font-semibold"
-                :class="slot!.rank === 1 ? 'bg-amber-100 text-amber-800' : 'text-gray-700'"
+                class="flex items-center gap-1.5 mt-2.5 px-4 py-1.5 rounded-full text-sm font-bold"
+                :class="slot!.rank === 1
+                  ? 'bg-amber-200 text-amber-800 border border-amber-300'
+                  : 'bg-white text-blue-600 border border-gray-200 shadow-sm'"
               >
-                <svg class="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <svg
+                  class="w-4 h-4 shrink-0"
+                  :class="slot!.rank === 1 ? 'text-amber-500' : 'text-blue-500'"
+                  viewBox="0 0 24 24" fill="currentColor"
+                >
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
                 <span>{{ slot!.user.score }}</span>
@@ -173,12 +182,14 @@ const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
             </div>
 
             <div
-              class="w-full rounded-t-xl flex items-center justify-center"
+              class="w-full rounded-t-2xl flex items-center justify-center"
               :style="{ height: PODIUM_CONFIG[slot!.rank].baseH, backgroundColor: PODIUM_CONFIG[slot!.rank].baseColor }"
             >
-              <span class="text-5xl font-black opacity-30 select-none" :style="{ color: slot!.rank === 1 ? '#78350F' : '#475569' }">
-                {{ slot!.rank }}
-              </span>
+              <span
+                class="font-black select-none"
+                :class="slot!.rank === 1 ? 'text-8xl' : 'text-7xl'"
+                :style="{ color: slot!.rank === 1 ? '#B8860B' : '#94A3B8', opacity: 0.4 }"
+              >{{ slot!.rank }}</span>
             </div>
           </div>
         </div>
