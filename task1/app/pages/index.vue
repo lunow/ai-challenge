@@ -90,7 +90,7 @@ const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-3 mb-4">
         <div class="flex flex-wrap gap-2 items-center">
           <div class="relative">
-            <select v-model="selectedYear" class="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select v-model="selectedYear" class="appearance-none pl-3 pr-8 py-1.5 text-sm border border-black text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" style="font-family: Verdana, sans-serif; border-radius: 1px; background-color: silver;">
               <option value="all">All Years</option>
               <option v-for="y in AVAILABLE_YEARS" :key="y" :value="y">{{ y }}</option>
             </select>
@@ -98,7 +98,7 @@ const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
           </div>
 
           <div class="relative">
-            <select v-model="selectedQuarter" class="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select v-model="selectedQuarter" class="appearance-none pl-3 pr-8 py-1.5 text-sm border border-black text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" style="font-family: Verdana, sans-serif; border-radius: 1px; background-color: silver;">
               <option value="all">All Quarters</option>
               <option v-for="q in QUARTERS" :key="q" :value="q">{{ q }}</option>
             </select>
@@ -106,7 +106,7 @@ const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
           </div>
 
           <div class="relative">
-            <select v-model="selectedCategory" class="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select v-model="selectedCategory" class="appearance-none pl-3 pr-8 py-1.5 text-sm border border-black text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" style="font-family: Verdana, sans-serif; border-radius: 1px; background-color: silver;">
               <option value="all">All Categories</option>
               <option v-for="c in CATEGORIES" :key="c" :value="c">{{ c }}</option>
             </select>
@@ -119,7 +119,7 @@ const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
             </span>
-            <input v-model="searchQuery" type="text" placeholder="Search employee..." class="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input v-model="searchQuery" type="text" placeholder="Search employee..." class="w-full pl-9 pr-3 py-1.5 text-sm border border-black text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" style="font-family: Verdana, sans-serif; border-radius: 1px; background-color: silver;" />
           </div>
         </div>
       </div>
