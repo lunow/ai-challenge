@@ -15,6 +15,7 @@ export interface Activity {
   points: number
   year: number
   quarter: number
+  date: string  // ISO "YYYY-MM-DD", within the activity's year+quarter
 }
 
 function av(img: number) { return `https://i.pravatar.cc/128?img=${img}` }
@@ -86,83 +87,304 @@ const TITLES: Record<string, string[]> = {
   ],
 }
 
-export const USERS: User[] = [
-  { id: '1',  name: 'Piotr Kowalski',      title: 'Senior Software Engineer', codes: 'PL.U1.D1.G1',    color: '#3B82F6', avatar: av(11) },  // male
-  { id: '2',  name: 'Jakub Wiśniewski',    title: 'Group Manager',            codes: 'PL.U1.G3',       color: '#10B981', avatar: av(12) },  // male
-  { id: '3',  name: 'Malika Rahimova',     title: 'Lead QA Engineer',         codes: 'UZ.U1.D1.G1.T1', color: '#8B5CF6', avatar: av(47) },  // female
-  { id: '4',  name: 'Aibek Mamytbekov',    title: 'Frontend Developer',       codes: 'KG.U2.D2.G2',    color: '#F59E0B', avatar: av(15) },  // male
-  { id: '5',  name: 'Agnieszka Dąbrowska', title: 'Product Manager',          codes: 'PL.U1.G1',       color: '#EF4444', avatar: av(48) },  // female
-  { id: '6',  name: 'Sardor Yusupov',      title: 'Backend Engineer',         codes: 'UZ.U2.D1.G2',    color: '#06B6D4', avatar: av(20) },  // male
-  { id: '7',  name: 'Ainura Osmonova',     title: 'DevOps Engineer',          codes: 'KG.U1.D3.G1',    color: '#84CC16', avatar: av(56) },  // female
-  { id: '8',  name: 'Krzysztof Nowak',     title: 'Data Engineer',            codes: 'PL.U3.D2.G4',    color: '#F97316', avatar: av(32) },  // male
-  { id: '9',  name: 'Zulfiya Ergasheva',   title: 'QA Engineer',              codes: 'UZ.U1.D1.T2',    color: '#EC4899', avatar: av(44) },  // female
-  { id: '10', name: 'Bakyt Toktorov',      title: 'Tech Lead',                codes: 'KG.U1.D1.G1',    color: '#6366F1', avatar: av(7)  },  // male
+const USER_COLORS = [
+  '#3B82F6','#10B981','#8B5CF6','#F59E0B','#EF4444',
+  '#06B6D4','#84CC16','#F97316','#EC4899','#6366F1',
+  '#14B8A6','#A855F7','#F43F5E','#22C55E','#EAB308',
+  '#0EA5E9','#D946EF','#64748B','#7C3AED','#059669',
 ]
 
-// Categories per user — ordered to maintain leaderboard ranking
-// Points: PS=30, UP=25, Ed=20
-//  1  Piotr      10 PS + 8 UP + 8 Ed  = 300+200+160 = 660
-//  2  Jakub       6 PS + 5 UP + 5 Ed  = 180+125+100 = 405
-//  3  Malika      5 PS + 5 UP + 4 Ed  = 150+125+ 80 = 355
-//  4  Aibek       4 PS + 3 UP + 4 Ed  = 120+ 75+ 80 = 275
-//  5  Agnieszka   3 PS + 3 UP + 3 Ed  =  90+ 75+ 60 = 225
-//  6  Sardor      3 PS + 2 UP + 2 Ed  =  90+ 50+ 40 = 180
-//  7  Ainura      2 PS + 2 UP + 2 Ed  =  60+ 50+ 40 = 150
-//  8  Krzysztof   2 PS + 1 UP + 2 Ed  =  60+ 25+ 40 = 125
-//  9  Zulfiya     1 PS + 1 UP + 1 Ed  =  30+ 25+ 20 =  75
-// 10  Bakyt       1 PS + 1 UP + 0 Ed  =  30+ 25      =  55
+// [name, title, codes]
+const RAW_USERS: [string, string, string][] = [
+  // ── Poland (1–25) ─────────────────────────────────────────────────────────
+  ['Piotr Kowalski',          'Senior Software Engineer',    'PL.U1.D1.G1'],
+  ['Agnieszka Wiśniewska',    'DevOps Engineer',             'PL.U1.D1.G2'],
+  ['Krzysztof Nowak',         'Data Engineer',               'PL.U1.D2.G1'],
+  ['Magdalena Szymańska',     'ML Engineer',                 'PL.U1.D2.G2'],
+  ['Michał Wójcik',           'Tech Lead',                   'PL.U1.D3.G1'],
+  ['Anna Kowalczyk',          'Backend Engineer',            'PL.U2.D1.G1'],
+  ['Tomasz Kamiński',         'Frontend Engineer',           'PL.U2.D1.G2'],
+  ['Ewelina Lewandowska',     'QA Engineer',                 'PL.U2.D2.G1'],
+  ['Rafał Zieliński',         'Full Stack Engineer',         'PL.U2.D2.G2'],
+  ['Natalia Mazur',           'Cloud Architect',             'PL.U2.D3.G1'],
+  ['Bartosz Krawczyk',        'Security Engineer',           'PL.U3.D1.G1'],
+  ['Marta Piotrowska',        'Site Reliability Engineer',   'PL.U3.D1.G2'],
+  ['Kamil Grabowski',         'Platform Engineer',           'PL.U3.D2.G1'],
+  ['Dominika Jankowska',      'Principal Software Engineer', 'PL.U3.D2.G2'],
+  ['Szymon Wojciechowski',    'Engineering Manager',         'PL.U3.D3.G1'],
+  ['Justyna Kwiatkowska',     'Data Scientist',              'PL.U4.D1.G1'],
+  ['Łukasz Kaczmarek',        'Infrastructure Engineer',     'PL.U4.D1.G2'],
+  ['Weronika Woźniak',        'Staff Software Engineer',     'PL.U4.D2.G1'],
+  ['Paweł Kozłowski',         'Embedded Systems Engineer',   'PL.U4.D2.G2'],
+  ['Filip Majewski',          'Systems Engineer',            'PL.U4.D3.G1'],
+  ['Monika Nowakowska',       'Senior QA Engineer',          'PL.U1.G1'],
+  ['Grzegorz Jaworski',       'SDET',                        'PL.U1.G2'],
+  ['Patrycja Chmielewska',    'Solutions Architect',         'PL.U2.G1'],
+  ['Artur Wiśniewski',        'Lead Software Engineer',      'PL.U2.G2'],
+  ['Zuzanna Dąbrowska',       'Senior Backend Engineer',     'PL.U3.G1'],
+  // ── Uzbekistan (26–40) ────────────────────────────────────────────────────
+  ['Sardor Yusupov',          'Backend Engineer',            'UZ.U1.D1.G1'],
+  ['Malika Rahimova',         'Lead QA Engineer',            'UZ.U1.D1.G2'],
+  ['Jasur Karimov',           'DevOps Engineer',             'UZ.U1.D2.G1'],
+  ['Zulfiya Ergasheva',       'QA Engineer',                 'UZ.U1.D2.G2'],
+  ['Nodir Xasanov',           'Data Engineer',               'UZ.U2.D1.G1'],
+  ['Nodira Toshmatova',       'Frontend Engineer',           'UZ.U2.D1.G2'],
+  ['Bobur Nazarov',           'ML Engineer',                 'UZ.U2.D2.G1'],
+  ['Gulnora Ismoilova',       'Software Engineer',           'UZ.U2.D2.G2'],
+  ['Timur Mirzayev',          'Platform Engineer',           'UZ.U3.D1.G1'],
+  ['Shahnoza Qodirova',       'Systems Engineer',            'UZ.U3.D1.G2'],
+  ['Aziz Pulatov',            'Senior Software Engineer',    'UZ.U3.D2.G1'],
+  ['Ozoda Razzaqova',         'Data Scientist',              'UZ.U3.D2.G2'],
+  ['Eldor Sobirov',           'Infrastructure Engineer',     'UZ.U1.G1'],
+  ['Feruza Haydarova',        'Security Engineer',           'UZ.U1.G2'],
+  ['Sanjar Abdullayev',       'Tech Lead',                   'UZ.U2.G1'],
+  // ── Kyrgyzstan (41–55) ────────────────────────────────────────────────────
+  ['Aibek Mamytbekov',        'Frontend Developer',          'KG.U1.D1.G1'],
+  ['Ainura Osmonova',         'DevOps Engineer',             'KG.U1.D1.G2'],
+  ['Bakyt Toktorov',          'Tech Lead',                   'KG.U1.D2.G1'],
+  ['Nurlan Sydykov',          'Senior Software Engineer',    'KG.U1.D2.G2'],
+  ['Gulmira Abakirova',       'QA Engineer',                 'KG.U2.D1.G1'],
+  ['Ermek Kojobekov',         'Backend Engineer',            'KG.U2.D1.G2'],
+  ['Jyldyz Jumaeva',          'Data Engineer',               'KG.U2.D2.G1'],
+  ['Manas Rysbekov',          'Platform Engineer',           'KG.U2.D2.G2'],
+  ['Aizat Bekturova',         'ML Engineer',                 'KG.U3.D1.G1'],
+  ['Azamat Dzhaksybekov',     'Infrastructure Engineer',     'KG.U3.D1.G2'],
+  ['Bermet Osmonbekova',      'Software Engineer',           'KG.U3.D2.G1'],
+  ['Kuban Jumabaev',          'Security Engineer',           'KG.U3.D2.G2'],
+  ['Zuura Abdykadyrova',      'Solutions Architect',         'KG.U1.G1'],
+  ['Mirlan Sultanbekov',      'Staff Software Engineer',     'KG.U1.G2'],
+  ['Daniyar Seitkali',        'Engineering Manager',         'KG.U2.G1'],
+  // ── Germany (56–75) ───────────────────────────────────────────────────────
+  ['Thomas Müller',           'Principal Software Engineer', 'DE.U1.D1.G1'],
+  ['Julia Schmidt',           'Senior DevOps Engineer',      'DE.U1.D1.G2'],
+  ['Lukas Schneider',         'Platform Engineer',           'DE.U1.D2.G1'],
+  ['Katharina Fischer',       'Data Scientist',              'DE.U1.D2.G2'],
+  ['Michael Weber',           'Cloud Architect',             'DE.U1.D3.G1'],
+  ['Sarah Meyer',             'AI Engineer',                 'DE.U2.D1.G1'],
+  ['Andreas Wagner',          'Security Engineer',           'DE.U2.D1.G2'],
+  ['Lena Becker',             'Backend Engineer',            'DE.U2.D2.G1'],
+  ['Klaus Schulz',            'Embedded Systems Engineer',   'DE.U2.D2.G2'],
+  ['Sophie Hoffmann',         'Frontend Engineer',           'DE.U2.D3.G1'],
+  ['Stefan Schäfer',          'Site Reliability Engineer',   'DE.U3.D1.G1'],
+  ['Marie Koch',              'Full Stack Engineer',         'DE.U3.D1.G2'],
+  ['Markus Bauer',            'Systems Engineer',            'DE.U3.D2.G1'],
+  ['Hannah Richter',          'QA Engineer',                 'DE.U3.D2.G2'],
+  ['Christian Klein',         'Data Engineer',               'DE.U3.D3.G1'],
+  ['Anna Wolf',               'ML Engineer',                 'DE.U4.D1.G1'],
+  ['Daniel Schröder',         'Solutions Architect',         'DE.U4.D1.G2'],
+  ['Emma Neumann',            'Tech Lead',                   'DE.U4.D2.G1'],
+  ['Florian Schwarz',         'Engineering Manager',         'DE.U4.D2.G2'],
+  ['Leonie Zimmermann',       'Senior Software Engineer',    'DE.U4.D3.G1'],
+  // ── France (76–90) ────────────────────────────────────────────────────────
+  ['Pierre Martin',           'Backend Engineer',            'FR.U1.D1.G1'],
+  ['Sophie Bernard',          'Data Engineer',               'FR.U1.D1.G2'],
+  ['Nicolas Dubois',          'DevOps Engineer',             'FR.U1.D2.G1'],
+  ['Émilie Thomas',           'ML Engineer',                 'FR.U1.D2.G2'],
+  ['François Robert',         'Security Engineer',           'FR.U2.D1.G1'],
+  ['Camille Richard',         'Frontend Engineer',           'FR.U2.D1.G2'],
+  ['Théo Petit',              'Platform Engineer',           'FR.U2.D2.G1'],
+  ['Charlotte Durand',        'Site Reliability Engineer',   'FR.U2.D2.G2'],
+  ['Maxime Leroy',            'Cloud Architect',             'FR.U3.D1.G1'],
+  ['Lucie Moreau',            'Data Scientist',              'FR.U3.D1.G2'],
+  ['Antoine Simon',           'Software Engineer',           'FR.U3.D2.G1'],
+  ['Pauline Laurent',         'QA Engineer',                 'FR.U1.G1'],
+  ['Baptiste Lefebvre',       'Systems Engineer',            'FR.U1.G2'],
+  ['Léa Roux',                'Staff Software Engineer',     'FR.U2.G1'],
+  ['Julien Fournier',         'Tech Lead',                   'FR.U2.G2'],
+  // ── United Kingdom (91–110) ───────────────────────────────────────────────
+  ['James Smith',             'Principal Software Engineer', 'GB.U1.D1.G1'],
+  ['Emma Jones',              'Data Engineer',               'GB.U1.D1.G2'],
+  ['Oliver Williams',         'DevOps Engineer',             'GB.U1.D2.G1'],
+  ['Sophie Brown',            'ML Engineer',                 'GB.U1.D2.G2'],
+  ['Harry Taylor',            'Backend Engineer',            'GB.U1.D3.G1'],
+  ['Isabella Davies',         'Frontend Engineer',           'GB.U2.D1.G1'],
+  ['Jack Evans',              'Security Engineer',           'GB.U2.D1.G2'],
+  ['Alice Wilson',            'QA Engineer',                 'GB.U2.D2.G1'],
+  ['George Roberts',          'Cloud Architect',             'GB.U2.D2.G2'],
+  ['Emily Johnson',           'Systems Engineer',            'GB.U2.D3.G1'],
+  ['Charlie Wood',            'Platform Engineer',           'GB.U3.D1.G1'],
+  ['Lily Thompson',           'Solutions Architect',         'GB.U3.D1.G2'],
+  ['William White',           'Site Reliability Engineer',   'GB.U3.D2.G1'],
+  ['Grace Wright',            'AI Engineer',                 'GB.U3.D2.G2'],
+  ['Thomas Martin',           'Embedded Systems Engineer',   'GB.U3.D3.G1'],
+  ['Poppy Green',             'Full Stack Engineer',         'GB.U4.D1.G1'],
+  ['Edward Hall',             'Data Scientist',              'GB.U4.D1.G2'],
+  ['Ava Collins',             'Software Engineer',           'GB.U4.D2.G1'],
+  ['Henry Clarke',            'Engineering Manager',         'GB.U4.D2.G2'],
+  ['Mia Edwards',             'Tech Lead',                   'GB.U4.D3.G1'],
+  // ── United States (111–130) ───────────────────────────────────────────────
+  ['Michael Johnson',         'Senior Software Engineer',    'US.U1.D1.G1'],
+  ['Jennifer Williams',       'DevOps Engineer',             'US.U1.D1.G2'],
+  ['Jason Brown',             'Backend Engineer',            'US.U1.D2.G1'],
+  ['Ashley Jones',            'ML Engineer',                 'US.U1.D2.G2'],
+  ['Kevin Garcia',            'Platform Engineer',           'US.U1.D3.G1'],
+  ['Jessica Miller',          'Data Scientist',              'US.U2.D1.G1'],
+  ['Brian Davis',             'Security Engineer',           'US.U2.D1.G2'],
+  ['Sarah Martinez',          'Frontend Engineer',           'US.U2.D2.G1'],
+  ['Ryan Anderson',           'Cloud Architect',             'US.U2.D2.G2'],
+  ['Megan Wilson',            'QA Engineer',                 'US.U2.D3.G1'],
+  ['Scott Thompson',          'Site Reliability Engineer',   'US.U3.D1.G1'],
+  ['Lauren Taylor',           'Full Stack Engineer',         'US.U3.D1.G2'],
+  ['Eric Moore',              'Systems Engineer',            'US.U3.D2.G1'],
+  ['Stephanie Lee',           'Data Engineer',               'US.U3.D2.G2'],
+  ['Brandon Jackson',         'Principal Architect',         'US.U3.D3.G1'],
+  ['Rachel Harris',           'AI Engineer',                 'US.U4.D1.G1'],
+  ['Tyler Martin',            'Software Engineer',           'US.U4.D1.G2'],
+  ['Nicole Clark',            'Engineering Manager',         'US.U4.D2.G1'],
+  ['Derek Lewis',             'SDET',                        'US.U4.D2.G2'],
+  ['Amanda Robinson',         'Staff Software Engineer',     'US.U4.D3.G1'],
+  // ── India (131–150) ───────────────────────────────────────────────────────
+  ['Arjun Sharma',            'Senior Software Engineer',    'IN.U1.D1.G1'],
+  ['Priya Patel',             'Data Engineer',               'IN.U1.D1.G2'],
+  ['Rahul Singh',             'Backend Engineer',            'IN.U1.D2.G1'],
+  ['Ananya Kumar',            'ML Engineer',                 'IN.U1.D2.G2'],
+  ['Vikram Gupta',            'DevOps Engineer',             'IN.U1.D3.G1'],
+  ['Divya Verma',             'Frontend Engineer',           'IN.U2.D1.G1'],
+  ['Amit Joshi',              'Platform Engineer',           'IN.U2.D1.G2'],
+  ['Neha Mehta',              'QA Engineer',                 'IN.U2.D2.G1'],
+  ['Sanjay Nair',             'Cloud Architect',             'IN.U2.D2.G2'],
+  ['Pooja Reddy',             'Data Scientist',              'IN.U2.D3.G1'],
+  ['Rajesh Rao',              'Site Reliability Engineer',   'IN.U3.D1.G1'],
+  ['Kavya Shah',              'Security Engineer',           'IN.U3.D1.G2'],
+  ['Kiran Bhatia',            'Systems Engineer',            'IN.U3.D2.G1'],
+  ['Pradeep Malhotra',        'Staff Software Engineer',     'IN.U3.D2.G2'],
+  ['Meera Chatterjee',        'Tech Lead',                   'IN.U3.D3.G1'],
+  ['Suresh Mukherjee',        'Embedded Systems Engineer',   'IN.U4.D1.G1'],
+  ['Riya Iyer',               'AI Engineer',                 'IN.U4.D1.G2'],
+  ['Vivek Krishnan',          'Engineering Manager',         'IN.U4.D2.G1'],
+  ['Aditi Pillai',            'Software Engineer',           'IN.U4.D2.G2'],
+  ['Rohan Agarwal',           'Full Stack Engineer',         'IN.U4.D3.G1'],
+  // ── Japan (151–165) ───────────────────────────────────────────────────────
+  ['Kenji Tanaka',            'Software Engineer',           'JP.U1.D1.G1'],
+  ['Yuki Yamamoto',           'Data Engineer',               'JP.U1.D1.G2'],
+  ['Hiroshi Watanabe',        'Backend Engineer',            'JP.U1.D2.G1'],
+  ['Sakura Ito',              'ML Engineer',                 'JP.U1.D2.G2'],
+  ['Takashi Suzuki',          'DevOps Engineer',             'JP.U2.D1.G1'],
+  ['Hana Sato',               'Frontend Engineer',           'JP.U2.D1.G2'],
+  ['Satoshi Nakamura',        'Security Engineer',           'JP.U2.D2.G1'],
+  ['Aoi Kobayashi',           'QA Engineer',                 'JP.U2.D2.G2'],
+  ['Ryu Kato',                'Platform Engineer',           'JP.U3.D1.G1'],
+  ['Misaki Yoshida',          'Site Reliability Engineer',   'JP.U3.D1.G2'],
+  ['Daiki Yamada',            'Cloud Architect',             'JP.U3.D2.G1'],
+  ['Ayaka Sasaki',            'Systems Engineer',            'JP.U3.D2.G2'],
+  ['Haruto Matsumoto',        'Data Scientist',              'JP.U1.G1'],
+  ['Rina Inoue',              'Staff Software Engineer',     'JP.U1.G2'],
+  ['Sota Kimura',             'Tech Lead',                   'JP.U2.G1'],
+  // ── Brazil (166–180) ──────────────────────────────────────────────────────
+  ['Lucas Silva',             'Backend Engineer',            'BR.U1.D1.G1'],
+  ['Ana Santos',              'Data Engineer',               'BR.U1.D1.G2'],
+  ['Gabriel Oliveira',        'DevOps Engineer',             'BR.U1.D2.G1'],
+  ['Beatriz Souza',           'ML Engineer',                 'BR.U1.D2.G2'],
+  ['Matheus Lima',            'Frontend Engineer',           'BR.U2.D1.G1'],
+  ['Camila Ferreira',         'QA Engineer',                 'BR.U2.D1.G2'],
+  ['Rodrigo Costa',           'Platform Engineer',           'BR.U2.D2.G1'],
+  ['Julia Rodrigues',         'Security Engineer',           'BR.U2.D2.G2'],
+  ['Rafael Almeida',          'Cloud Architect',             'BR.U3.D1.G1'],
+  ['Fernanda Nascimento',     'Data Scientist',              'BR.U3.D1.G2'],
+  ['Felipe Carvalho',         'Systems Engineer',            'BR.U3.D2.G1'],
+  ['Isabella Ribeiro',        'Site Reliability Engineer',   'BR.U3.D2.G2'],
+  ['Carlos Azevedo',          'Software Engineer',           'BR.U1.G1'],
+  ['Mariana Gomes',           'Full Stack Engineer',         'BR.U1.G2'],
+  ['André Monteiro',          'Tech Lead',                   'BR.U2.G1'],
+  // ── Spain (181–193) ───────────────────────────────────────────────────────
+  ['Alejandro García',        'Senior Software Engineer',    'ES.U1.D1.G1'],
+  ['Lucía Martínez',          'Data Engineer',               'ES.U1.D1.G2'],
+  ['Carlos López',            'Backend Engineer',            'ES.U1.D2.G1'],
+  ['María Sánchez',           'ML Engineer',                 'ES.U1.D2.G2'],
+  ['David González',          'DevOps Engineer',             'ES.U2.D1.G1'],
+  ['Sara Pérez',              'Frontend Engineer',           'ES.U2.D1.G2'],
+  ['Diego Rodríguez',         'Platform Engineer',           'ES.U2.D2.G1'],
+  ['Paula Fernández',         'QA Engineer',                 'ES.U2.D2.G2'],
+  ['Miguel Torres',           'Cloud Architect',             'ES.U3.D1.G1'],
+  ['Elena Ramírez',           'Security Engineer',           'ES.U3.D1.G2'],
+  ['Javier Díaz',             'Systems Engineer',            'ES.U1.G1'],
+  ['Sofía Castillo',          'Data Scientist',              'ES.U1.G2'],
+  ['Roberto Moreno',          'Tech Lead',                   'ES.U2.G1'],
+  // ── Italy (194–205) ───────────────────────────────────────────────────────
+  ['Marco Rossi',             'Senior Software Engineer',    'IT.U1.D1.G1'],
+  ['Giulia Ferrari',          'Data Engineer',               'IT.U1.D1.G2'],
+  ['Luca Esposito',           'Backend Engineer',            'IT.U1.D2.G1'],
+  ['Valentina Bianchi',       'ML Engineer',                 'IT.U1.D2.G2'],
+  ['Giovanni Romano',         'DevOps Engineer',             'IT.U2.D1.G1'],
+  ['Chiara Colombo',          'Frontend Engineer',           'IT.U2.D1.G2'],
+  ['Alessandro Ricci',        'Platform Engineer',           'IT.U2.D2.G1'],
+  ['Francesca Marino',        'QA Engineer',                 'IT.U2.D2.G2'],
+  ['Francesco Greco',         'Cloud Architect',             'IT.U3.D1.G1'],
+  ['Sara Bruno',              'Security Engineer',           'IT.U3.D1.G2'],
+  ['Matteo Conti',            'Systems Engineer',            'IT.U1.G1'],
+  ['Martina Serra',           'Tech Lead',                   'IT.U1.G2'],
+  // ── Netherlands (206–213) ─────────────────────────────────────────────────
+  ['Jan de Vries',            'Senior Software Engineer',    'NL.U1.D1.G1'],
+  ['Emma van den Berg',       'Data Engineer',               'NL.U1.D1.G2'],
+  ['Pieter van Dijk',         'Backend Engineer',            'NL.U1.D2.G1'],
+  ['Lieke Bakker',            'ML Engineer',                 'NL.U1.D2.G2'],
+  ['Sjoerd Janssen',          'DevOps Engineer',             'NL.U2.D1.G1'],
+  ['Anouk Visser',            'Frontend Engineer',           'NL.U2.D1.G2'],
+  ['Thijs Smit',              'Platform Engineer',           'NL.U2.D2.G1'],
+  ['Noor Meijer',             'QA Engineer',                 'NL.U2.D2.G2'],
+  // ── Canada (214–220) ──────────────────────────────────────────────────────
+  ['Andrew MacDonald',        'Senior Software Engineer',    'CA.U1.D1.G1'],
+  ['Emily Murphy',            'Data Scientist',              'CA.U1.D1.G2'],
+  ['Patrick MacLean',         'DevOps Engineer',             'CA.U1.D2.G1'],
+  ['Madison Campbell',        'ML Engineer',                 'CA.U1.D2.G2'],
+  ['Sean Stewart',            'Backend Engineer',            'CA.U2.D1.G1'],
+  ['Abigail Clarke',          'Frontend Engineer',           'CA.U2.D1.G2'],
+  ['Connor Ross',             'Security Engineer',           'CA.U2.D2.G1'],
+  // ── Australia (221–227) ───────────────────────────────────────────────────
+  ['Lachlan Smith',           'Senior Software Engineer',    'AU.U1.D1.G1'],
+  ['Chloe Jones',             'Data Engineer',               'AU.U1.D1.G2'],
+  ['Cameron Williams',        'Backend Engineer',            'AU.U1.D2.G1'],
+  ['Isla Brown',              'ML Engineer',                 'AU.U1.D2.G2'],
+  ['Dylan Taylor',            'DevOps Engineer',             'AU.U2.D1.G1'],
+  ['Sienna Wilson',           'Frontend Engineer',           'AU.U2.D1.G2'],
+  ['Angus Martin',            'Cloud Architect',             'AU.U2.D2.G1'],
+]
 
-const USER_CATEGORY_LISTS: Record<string, string[]> = {
-  '1':  [
-    ...Array(10).fill('Public Speaking'),
-    ...Array(8).fill('University Partnership'),
-    ...Array(8).fill('Education'),
-  ],
-  '2':  [
-    ...Array(6).fill('Public Speaking'),
-    ...Array(5).fill('University Partnership'),
-    ...Array(5).fill('Education'),
-  ],
-  '3':  [
-    ...Array(5).fill('Public Speaking'),
-    ...Array(5).fill('University Partnership'),
-    ...Array(4).fill('Education'),
-  ],
-  '4':  [
-    ...Array(4).fill('Public Speaking'),
-    ...Array(3).fill('University Partnership'),
-    ...Array(4).fill('Education'),
-  ],
-  '5':  [
-    ...Array(3).fill('Public Speaking'),
-    ...Array(3).fill('University Partnership'),
-    ...Array(3).fill('Education'),
-  ],
-  '6':  [
-    ...Array(3).fill('Public Speaking'),
-    ...Array(2).fill('University Partnership'),
-    ...Array(2).fill('Education'),
-  ],
-  '7':  [
-    ...Array(2).fill('Public Speaking'),
-    ...Array(2).fill('University Partnership'),
-    ...Array(2).fill('Education'),
-  ],
-  '8':  [
-    ...Array(2).fill('Public Speaking'),
-    ...Array(1).fill('University Partnership'),
-    ...Array(2).fill('Education'),
-  ],
-  '9':  [
-    ...Array(1).fill('Public Speaking'),
-    ...Array(1).fill('University Partnership'),
-    ...Array(1).fill('Education'),
-  ],
-  '10': [
-    ...Array(1).fill('Public Speaking'),
-    ...Array(1).fill('University Partnership'),
-  ],
+export const USERS: User[] = RAW_USERS.map(([name, title, codes], i) => ({
+  id: String(i + 1),
+  name, title, codes,
+  color: USER_COLORS[i % USER_COLORS.length],
+  avatar: av((i % 70) + 1),
+}))
+
+// Top performers have 3 activities; next tier has 2; everyone else has 1.
+// Points: Public Speaking=30, University Partnership=25, Education=20
+const MULTI_ACTIVITY: Record<string, string[]> = {
+  '1':   ['Public Speaking', 'Public Speaking', 'University Partnership'],  // 85 pts
+  '56':  ['Public Speaking', 'Public Speaking', 'University Partnership'],  // 85 pts
+  '91':  ['Public Speaking', 'Public Speaking', 'Education'],               // 80 pts
+  '111': ['Public Speaking', 'University Partnership', 'Education'],        // 75 pts
+  '131': ['Public Speaking', 'University Partnership', 'Education'],        // 75 pts
+  '2':   ['Public Speaking', 'Education'],              // 50 pts
+  '3':   ['Public Speaking', 'University Partnership'], // 55 pts
+  '4':   ['University Partnership', 'Education'],       // 45 pts
+  '5':   ['Public Speaking', 'Education'],              // 50 pts
+  '26':  ['Public Speaking', 'University Partnership'], // 55 pts
+  '27':  ['University Partnership', 'Education'],       // 45 pts
+  '42':  ['Public Speaking', 'Education'],              // 50 pts
+  '57':  ['Public Speaking', 'University Partnership'], // 55 pts
+  '76':  ['University Partnership', 'Education'],       // 45 pts
+  '92':  ['Public Speaking', 'Education'],              // 50 pts
+  '112': ['Public Speaking', 'University Partnership'], // 55 pts
+  '132': ['University Partnership', 'Education'],       // 45 pts
+  '151': ['Public Speaking', 'Education'],              // 50 pts
+  '152': ['Public Speaking', 'University Partnership'], // 55 pts
+  '166': ['University Partnership', 'Education'],       // 45 pts
+  '181': ['Public Speaking', 'Education'],              // 50 pts
+  '194': ['Public Speaking', 'University Partnership'], // 55 pts
+  '206': ['University Partnership', 'Education'],       // 45 pts
+  '214': ['Public Speaking', 'Education'],              // 50 pts
+  '221': ['Public Speaking', 'University Partnership'], // 55 pts
 }
+
+const SINGLE_CATS = ['Public Speaking', 'University Partnership', 'Education'] as const
+
+const USER_CATEGORY_LISTS: Record<string, string[]> = Object.fromEntries(
+  Array.from({ length: 227 }, (_, i) => {
+    const id = String(i + 1)
+    return [id, MULTI_ACTIVITY[id] ?? [SINGLE_CATS[i % 3]]]
+  })
+)
 
 // LCG deterministic RNG
 function makeLcg(seed: number) {
@@ -195,6 +417,13 @@ export const ACTIVITIES: Activity[] = (() => {
       const year    = rng() < 0.6 ? 2025 : 2024
       const quarter = (Math.floor(rng() * 4) + 1) as 1 | 2 | 3 | 4
 
+      // Pick a random day within the quarter
+      const qMonthStart = (quarter - 1) * 3  // 0, 3, 6, 9
+      const month = qMonthStart + Math.floor(rng() * 3)
+      const daysInMonth = new Date(year, month + 1, 0).getDate()
+      const day = Math.floor(rng() * daysInMonth) + 1
+      const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
       result.push({
         id: String(id++),
         userId: user.id,
@@ -203,6 +432,7 @@ export const ACTIVITIES: Activity[] = (() => {
         points: POINTS[category],
         year,
         quarter,
+        date,
       })
     }
   }
