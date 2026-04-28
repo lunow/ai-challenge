@@ -260,7 +260,7 @@ const CATEGORY_ICON: Record<string, string> = {
       </div>
 
       <!-- ── Ranked list ─────────────────────────────────────────────────── -->
-      <div class="flex flex-col gap-2">
+      <div class="flex flex-col gap-4">
         <div v-if="leaderboard.length === 0" class="empty-state"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>No activities found matching the current filters.</div>
 
         <template v-for="entry in leaderboard" :key="entry.id">
